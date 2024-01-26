@@ -65,9 +65,19 @@ export const builder = (yargs: Argv<any>): Argv<any> =>
         describe: 'Memory limit for Hadoop',
         default: '4G',
       },
+      shapesFolderPath: {
+        type: 'string',
+        describe: 'Path of the folder of shapes',
+        default: './shapes'
+      },
+      shapetreeConfig: {
+        type: 'boolean',
+        describe: 'Enable the creation of shape trees inside of the pods',
+        default: true
+      }
     })
     .check((args, options): boolean => {
-      const scales = [ 0.1, 1, 3, 10, 30, 100, 300, 1_000 ];
+      const scales = [0.1, 1, 3, 10, 30, 100, 300, 1_000];
       if (!scales.includes(args.scale)) {
         throw new Error(`Invalid SNB scale factor '${args.type}'. Must be one of '${Object.keys(scales).join(', ')}'`);
       }
@@ -85,4 +95,6 @@ export const handler = (argv: Record<string, any>): Promise<void> => new Generat
   validationParams: argv.validationParams,
   validationConfig: argv.validationConfig,
   hadoopMemory: argv.hadoopMemory,
+  shapesFolderPath: argv.shapesFolderPath,
+  generateShapeTree: argv.shapetreeConfig
 }).generate();

@@ -7,6 +7,7 @@ import { runConfig as runValidationGenerator } from 'ldbc-snb-validation-generat
 import { runConfig as runFragmenter } from 'rdf-dataset-fragmenter';
 import { runConfig as runQueryInstantiator } from 'sparql-query-parameter-instantiator';
 import { Extract } from 'unzipper';
+import * as STG from 'shape-tree-in-solid-bench/index';
 
 /**
  * Generates decentralized social network data in different phases.
@@ -34,6 +35,8 @@ export class Generator {
   private readonly validationConfig: string;
   private readonly hadoopMemory: string;
   private readonly mainModulePath: string;
+  private readonly shapesFolderPath: string | undefined;
+  private readonly runShapeTreeGenerator: boolean | undefined;
 
   public constructor(opts: IGeneratorOptions) {
     this.cwd = opts.cwd;
@@ -47,6 +50,9 @@ export class Generator {
     this.validationParams = opts.validationParams;
     this.validationConfig = opts.validationConfig;
     this.hadoopMemory = opts.hadoopMemory;
+    this.shapesFolderPath = opts.shapesFolderPath;
+    this.runShapeTreeGenerator = opts.generateShapeTree;
+
     this.mainModulePath = Path.join(__dirname, '..');
   }
 
@@ -63,8 +69,13 @@ export class Generator {
     process.stdout.write(`${Generator.withColor(`[${phase}]`, Generator.COLOR_CYAN)} ${status}\n`);
   }
 
-  protected async runPhase(name: string, directory: string, runner: () => Promise<void>): Promise<void> {
-    if (this.overwrite || !await this.targetExists(Path.join(this.cwd, directory))) {
+  protected async runPhase(name: string, directory: string | undefined, runner: () => Promise<void>): Promise<void> {
+    let run = false;
+    if (directory === undefined || (this.overwrite || !await this.targetExists(Path.join(this.cwd, directory)))) {
+      run = true;
+    }
+
+    if (run) {
       this.log(name, 'Started');
       const timeStart = process.hrtime();
       await runner();
@@ -86,6 +97,9 @@ export class Generator {
     await this.runPhase('SPARQL query instantiator', 'out-queries', () => this.instantiateQueries());
     await this.runPhase('SNB validation downloader', 'out-validate-params', () => this.downloadValidationParams());
     await this.runPhase('SNB validation generator', 'out-validate', () => this.generateValidation());
+    if (this.runShapeTreeGenerator) {
+      await this.runPhase('Shape Trees generator', undefined, () => this.generateShapeTree());
+    }
     const timeEnd = process.hrtime(timeStart);
     this.log('All', `Done in ${timeEnd[0] + (timeEnd[1] / 1_000_000_000)} seconds`);
   }
@@ -113,7 +127,7 @@ export class Generator {
       Tty: true,
       AttachStdout: true,
       AttachStderr: true,
-      Env: [ `HADOOP_CLIENT_OPTS=-Xmx${this.hadoopMemory}` ],
+      Env: [`HADOOP_CLIENT_OPTS=-Xmx${this.hadoopMemory}`],
       HostConfig: {
         Binds: [
           `${this.cwd}/out-snb/:/opt/ldbc_snb_datagen/out`,
@@ -125,7 +139,7 @@ export class Generator {
 
     // Stop process on force-exit
     let containerEnded = false;
-    process.on('SIGINT', async() => {
+    process.on('SIGINT', async () => {
       if (!containerEnded) {
         await container.kill();
         await cleanup();
@@ -242,9 +256,58 @@ export class Generator {
     process.chdir(oldCwd);
   }
 
+  public getShapeTreeGeneratorInformation(): [string, string] | undefined {
+    const fragmentConfig = require(this.fragmentConfig);
+
+    const iriToPath: Map<string, string> = fragmentConfig['iriToPath'];
+    let fragmentPath: string = "";
+    for (const [_, path] of iriToPath) {
+      if (fs.existsSync(path)) {
+        fragmentPath = path;
+      }
+    }
+    if (fragmentPath === "") {
+      console.error("Was not able to find the path of the fragment");
+      return undefined;
+    }
+
+    const rePort = /(https?)\/(localhost):(\D*)\//;
+    const aTransformerString: string = fragmentConfig['transformers'][0]['replacementString'];
+    const foundURL = aTransformerString.match(rePort);
+    if (foundURL === null) {
+      console.error("Was not able to find the port of the output fragment. The Shape were not generated");
+      return undefined;
+    }
+    const port: number = Number(foundURL[3]);
+    return [fragmentPath, String(port)];
+  }
+
+  /**
+   * Generate shape Trees given that the fragments have been generated
+   */
+  public async generateShapeTree(): Promise<void> {
+    const shapeTreeInformation = this.getShapeTreeGeneratorInformation();
+    if (shapeTreeInformation === undefined) {
+      return;
+    }
+    const [fragmentPath, port] = shapeTreeInformation;
+
+    const config: STG.Config = {
+      pods_folder: `${fragmentPath}/localhost_${port}/pods`,
+      shape_folders: this.shapesFolderPath,
+      generate_shape: STG.getShapeFromPath,
+      generate_shape_trees: STG.generateShapeTreesFile,
+    };
+    const errors = await STG.walkSolidPods(config);
+    if (errors === undefined) {
+    } else {
+      console.error(`There was ${errors.length} error(s)`)
+    }
+  }
+
   protected async generateVariables(): Promise<Record<string, string>> {
     return Object.fromEntries((await fs.promises.readdir(Path.join(__dirname, '../templates/queries/')))
-      .map(name => [ `urn:variables:query-templates:${name}`, Path.join(__dirname, `../templates/queries/${name}`) ]));
+      .map(name => [`urn:variables:query-templates:${name}`, Path.join(__dirname, `../templates/queries/${name}`)]));
   }
 
   /**
@@ -269,4 +332,6 @@ export interface IGeneratorOptions {
   validationParams: string;
   validationConfig: string;
   hadoopMemory: string;
+  shapesFolderPath?: string;
+  generateShapeTree?: boolean;
 }
