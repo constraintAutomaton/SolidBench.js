@@ -7,7 +7,7 @@ import { runConfig as runValidationGenerator } from 'ldbc-snb-validation-generat
 import { runConfig as runFragmenter } from 'rdf-dataset-fragmenter';
 import { runConfig as runQueryInstantiator } from 'sparql-query-parameter-instantiator';
 import { Extract } from 'unzipper';
-import * as STG from 'shape-tree-in-solid-bench/index';
+import { Config, walkSolidPods, generateShapeTreesFile, getShapeFromPath } from 'shape-tree-in-solid-bench';
 
 /**
  * Generates decentralized social network data in different phases.
@@ -256,30 +256,33 @@ export class Generator {
     process.chdir(oldCwd);
   }
 
-  public getShapeTreeGeneratorInformation(): [string, string] | undefined {
-    const fragmentConfig = require(this.fragmentConfig);
+  /* istanbul ignore next */
+  public getFragmentConfig(): any {
+    const jsonConfig = fs.readFileSync(this.fragmentConfig);
+    return JSON.parse(jsonConfig.toString());
+  }
 
-    const iriToPath: Map<string, string> = fragmentConfig['iriToPath'];
+  public getShapeTreeGeneratorInformation(): [string, string] | undefined {
+    const fragmentConfig = this.getFragmentConfig();
+    const iriToPath: any = fragmentConfig['quadSink']['iriToPath'];
     let fragmentPath: string = "";
-    for (const [_, path] of iriToPath) {
-      if (fs.existsSync(path)) {
-        fragmentPath = path;
+    for (const [_, path] of Object.entries(iriToPath)) {
+      if (fs.existsSync(<string>path)) {
+        fragmentPath = <string>path;
       }
     }
     if (fragmentPath === "") {
-      console.error("Was not able to find the path of the fragment");
       return undefined;
     }
 
-    const rePort = /(https?)\/(localhost):(\D*)\//;
+    const rePort = /(https?):\/\/(.*)\//;
     const aTransformerString: string = fragmentConfig['transformers'][0]['replacementString'];
     const foundURL = aTransformerString.match(rePort);
     if (foundURL === null) {
-      console.error("Was not able to find the port of the output fragment. The Shape were not generated");
       return undefined;
     }
-    const port: number = Number(foundURL[3]);
-    return [fragmentPath, String(port)];
+    const baseAddr = foundURL[2];
+    return [fragmentPath, baseAddr];
   }
 
   /**
@@ -290,18 +293,18 @@ export class Generator {
     if (shapeTreeInformation === undefined) {
       return;
     }
-    const [fragmentPath, port] = shapeTreeInformation;
+    const [fragmentPath, baseAddr] = shapeTreeInformation;
 
-    const config: STG.Config = {
-      pods_folder: `${fragmentPath}/localhost_${port}/pods`,
+    const config: Config = {
+      pods_folder: `${fragmentPath}/${baseAddr.replace(":", "_")}/pods`,
       shape_folders: this.shapesFolderPath,
-      generate_shape: STG.getShapeFromPath,
-      generate_shape_trees: STG.generateShapeTreesFile,
+      generate_shape: getShapeFromPath,
+      generate_shape_trees: generateShapeTreesFile,
     };
-    const errors = await STG.walkSolidPods(config);
+    const errors = await walkSolidPods(config);
     if (errors === undefined) {
     } else {
-      console.error(`There was ${errors.length} error(s)`)
+      console.error(`There was ${errors.length} error(s)`);
     }
   }
 
