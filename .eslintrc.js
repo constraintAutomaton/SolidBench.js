@@ -23,5 +23,6 @@ module.exports = {
         'import/group-exports': 'off',
         'import/newline-after-import': 'off',
         'import/no-nodejs-modules': 'off',
+        'no-sync': 'off',
     }
 };

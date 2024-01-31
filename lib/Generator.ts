@@ -5,9 +5,10 @@ import Dockerode from 'dockerode';
 import { runConfig as runEnhancer } from 'ldbc-snb-enhancer';
 import { runConfig as runValidationGenerator } from 'ldbc-snb-validation-generator';
 import { runConfig as runFragmenter } from 'rdf-dataset-fragmenter';
+import type { Config } from 'shape-tree-in-solid-bench';
+import { walkSolidPods, generateShapeTreesFile, getShapeFromPath } from 'shape-tree-in-solid-bench';
 import { runConfig as runQueryInstantiator } from 'sparql-query-parameter-instantiator';
 import { Extract } from 'unzipper';
-import { Config, walkSolidPods, generateShapeTreesFile, getShapeFromPath } from 'shape-tree-in-solid-bench';
 
 /**
  * Generates decentralized social network data in different phases.
@@ -127,7 +128,7 @@ export class Generator {
       Tty: true,
       AttachStdout: true,
       AttachStderr: true,
-      Env: [`HADOOP_CLIENT_OPTS=-Xmx${this.hadoopMemory}`],
+      Env: [ `HADOOP_CLIENT_OPTS=-Xmx${this.hadoopMemory}` ],
       HostConfig: {
         Binds: [
           `${this.cwd}/out-snb/:/opt/ldbc_snb_datagen/out`,
@@ -139,7 +140,7 @@ export class Generator {
 
     // Stop process on force-exit
     let containerEnded = false;
-    process.on('SIGINT', async () => {
+    process.on('SIGINT', async() => {
       if (!containerEnded) {
         await container.kill();
         await cleanup();
@@ -264,25 +265,25 @@ export class Generator {
 
   public getShapeTreeGeneratorInformation(): [string, string] | undefined {
     const fragmentConfig = this.getFragmentConfig();
-    const iriToPath: any = fragmentConfig['quadSink']['iriToPath'];
-    let fragmentPath: string = "";
-    for (const [_, path] of Object.entries(iriToPath)) {
+    const iriToPath: any = fragmentConfig.quadSink.iriToPath;
+    let fragmentPath = '';
+    for (const [ _, path ] of Object.entries(iriToPath)) {
       if (fs.existsSync(<string>path)) {
         fragmentPath = <string>path;
       }
     }
-    if (fragmentPath === "") {
+    if (fragmentPath === '') {
       return undefined;
     }
 
-    const rePort = /(https?):\/\/(.*)\//;
-    const aTransformerString: string = fragmentConfig['transformers'][0]['replacementString'];
-    const foundURL = aTransformerString.match(rePort);
+    const rePort = /(https?):\/\/(.*)\//u;
+    const aTransformerString: string = fragmentConfig.transformers[0].replacementString;
+    const foundURL = rePort.exec(aTransformerString);
     if (foundURL === null) {
       return undefined;
     }
     const baseAddr = foundURL[2];
-    return [fragmentPath, baseAddr];
+    return [ fragmentPath, baseAddr ];
   }
 
   /**
@@ -293,24 +294,24 @@ export class Generator {
     if (shapeTreeInformation === undefined) {
       return;
     }
-    const [fragmentPath, baseAddr] = shapeTreeInformation;
+    const [ fragmentPath, baseAddr ] = shapeTreeInformation;
 
     const config: Config = {
-      pods_folder: `${fragmentPath}/${baseAddr.replace(":", "_")}/pods`,
+      pods_folder: `${fragmentPath}/${baseAddr.replace(':', '_')}/pods`,
       shape_folders: this.shapesFolderPath,
       generate_shape: getShapeFromPath,
       generate_shape_trees: generateShapeTreesFile,
     };
     const errors = await walkSolidPods(config);
-    if (errors === undefined) {
-    } else {
-      console.error(`There was ${errors.length} error(s)`);
+    /* istanbul ignore next */
+    if (errors !== undefined) {
+      this.log('Shape Trees generator', `There was ${errors.length} error(s)`);
     }
   }
 
   protected async generateVariables(): Promise<Record<string, string>> {
     return Object.fromEntries((await fs.promises.readdir(Path.join(__dirname, '../templates/queries/')))
-      .map(name => [`urn:variables:query-templates:${name}`, Path.join(__dirname, `../templates/queries/${name}`)]));
+      .map(name => [ `urn:variables:query-templates:${name}`, Path.join(__dirname, `../templates/queries/${name}`) ]));
   }
 
   /**

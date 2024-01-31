@@ -3,17 +3,16 @@ import * as Path from 'path';
 import { runConfig as runEnhancer } from 'ldbc-snb-enhancer';
 import { runConfig as runValidationGenerator } from 'ldbc-snb-validation-generator';
 import { runConfig as runFragmenter } from 'rdf-dataset-fragmenter';
+import { walkSolidPods } from 'shape-tree-in-solid-bench';
 import { runConfig as runQueryInstantiator } from 'sparql-query-parameter-instantiator';
 
 import { Generator } from '../lib/Generator';
-
-import * as STS from 'shape-tree-in-solid-bench';
 
 let files: Record<string, string> = {};
 let filesOut: Record<string, string> = {};
 let filesDeleted: Record<string, boolean> = {};
 let dirsOut: Record<string, boolean> = {};
-let fileExist: boolean = true;
+let fileExist = true;
 
 jest.mock('fs', () => ({
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
@@ -41,26 +40,15 @@ jest.mock('fs', () => ({
       throw new Error(`Unknown file in Generator tests: ${filePath}`);
     },
     async readdir(): Promise<string[]> {
-      return ['abc'];
+      return [ 'abc' ];
     },
   },
   existsSync(_path: string): boolean {
     return fileExist;
-  }
+  },
 }));
 
-let mockWalkSolidPods = jest.fn();
-
-jest.mock('shape-tree-in-solid-bench', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-  ...<any>jest.requireActual('shape-tree-in-solid-bench'),
-  promises: {
-    async walkSolidPods(config: STS.Config): Promise<Error[][] | undefined> {
-      return mockWalkSolidPods(config);
-    }
-  }
-}
-));
+jest.mock('shape-tree-in-solid-bench');
 
 let container: any = {};
 let followProgress: any;
@@ -155,13 +143,13 @@ describe('Generator', () => {
   });
 
   describe('generateSnbDataset', () => {
-    it('for a non-existing params.ini template', async () => {
+    it('for a non-existing params.ini template', async() => {
       files = {};
 
       await expect(generator.generateSnbDataset()).rejects.toThrow('templates/params.ini');
     });
 
-    it('for a valid state', async () => {
+    it('for a valid state', async() => {
       await generator.generateSnbDataset();
 
       expect(filesOut[Path.join('CWD', 'params.ini')]).toEqual('BLA 0.1 BLA');
@@ -172,7 +160,7 @@ describe('Generator', () => {
       expect(container.kill).not.toHaveBeenCalled();
     });
 
-    it('for a valid state in non-verbose mode', async () => {
+    it('for a valid state in non-verbose mode', async() => {
       generator = new Generator({
         cwd: 'CWD',
         verbose: false,
@@ -197,7 +185,7 @@ describe('Generator', () => {
       expect(container.kill).not.toHaveBeenCalled();
     });
 
-    it('when interrupted via SIGINT', async () => {
+    it('when interrupted via SIGINT', async() => {
       let onError: any;
       jest.spyOn(process, 'on').mockImplementation(<any>((evt: any, cb: any) => {
         if (evt === 'SIGINT') {
@@ -223,7 +211,7 @@ describe('Generator', () => {
       expect(container.kill).toHaveBeenCalled();
     });
 
-    it('when interrupted via SIGINT after container was already ended', async () => {
+    it('when interrupted via SIGINT after container was already ended', async() => {
       let sigintCb: any;
       const sigintCalled = new Promise<void>(resolve => {
         jest.spyOn(process, 'on').mockImplementation(<any>((evt: any, cb: any) => {
@@ -256,7 +244,7 @@ describe('Generator', () => {
       expect(container.kill).not.toHaveBeenCalled();
     });
 
-    it('throws for an image pull failure', async () => {
+    it('throws for an image pull failure', async() => {
       followProgress = jest.fn((buildStream: any, cb: any) => {
         cb(new Error('FAIL IMAGE PULL'));
       });
@@ -266,7 +254,7 @@ describe('Generator', () => {
   });
 
   describe('enhanceSnbDataset', () => {
-    it('should run the enhancer', async () => {
+    it('should run the enhancer', async() => {
       await generator.enhanceSnbDataset();
 
       expect(dirsOut[Path.join('CWD', 'out-enhanced')]).toBeTruthy();
@@ -275,7 +263,7 @@ describe('Generator', () => {
   });
 
   describe('fragmentSnbDataset', () => {
-    it('should run the fragmenter twice', async () => {
+    it('should run the fragmenter twice', async() => {
       await generator.fragmentSnbDataset();
 
       expect(runFragmenter).toHaveBeenCalledWith('fragmentConfig', { mainModulePath });
@@ -284,7 +272,7 @@ describe('Generator', () => {
   });
 
   describe('instantiateQueries', () => {
-    it('should run the instantiator', async () => {
+    it('should run the instantiator', async() => {
       await generator.instantiateQueries();
 
       expect(dirsOut[Path.join('CWD', 'out-queries')]).toBeTruthy();
@@ -294,7 +282,7 @@ describe('Generator', () => {
   });
 
   describe('generateValidation', () => {
-    it('should run the validation generator', async () => {
+    it('should run the validation generator', async() => {
       await generator.generateValidation();
 
       expect(dirsOut[Path.join('CWD', 'out-validate')]).toBeTruthy();
@@ -362,11 +350,10 @@ describe('Generator', () => {
         });
 
         const resp = generator.getShapeTreeGeneratorInformation();
-        expect(resp).toStrictEqual(["out-fragments/https/", "localhost:3000"]);
+        expect(resp).toStrictEqual([ 'out-fragments/https/', 'localhost:3000' ]);
       });
 
       it('should return undefined if there is no iriToPath defined in the fragmenter config', () => {
-
         jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
           return JSON.parse(`
             {
@@ -425,7 +412,6 @@ describe('Generator', () => {
       });
 
       it('should return undefined if there all the iriToPath in the fragmenter config folders don\'t exist', () => {
-
         jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
           return JSON.parse(`
             {
@@ -484,7 +470,6 @@ describe('Generator', () => {
       });
 
       it('should throw if the fragmenter config have no transformers', () => {
-
         jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
           return JSON.parse(`
             {
@@ -527,7 +512,6 @@ describe('Generator', () => {
       });
 
       it('should throw if the fragmenter config transformers is empty', () => {
-
         jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
           return JSON.parse(`
             {
@@ -572,7 +556,6 @@ describe('Generator', () => {
       });
 
       it('should throw if the fragmenter config first transformer doesn\'t have a replacementString property', () => {
-
         jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
           return JSON.parse(`
             {
@@ -631,7 +614,6 @@ describe('Generator', () => {
       });
 
       it('should return undefined if the fragmenter config first a replacementString property is not an URL', () => {
-
         jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
           return JSON.parse(`
             {
@@ -692,8 +674,8 @@ describe('Generator', () => {
       });
     });
 
-    it('should not have walk into solid pods given the getShapeTreeGeneratorInformation return undefined', () => {
-      // make getShapeTreeGeneratorInformation return undefined
+    it('should not have walk into solid pods given the getShapeTreeGeneratorInformation return undefined', async() => {
+      // Make getShapeTreeGeneratorInformation return undefined
       jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
         return JSON.parse(`
           {
@@ -746,12 +728,12 @@ describe('Generator', () => {
           
           `);
       });
-      generator.generateShapeTree();
-      expect(mockWalkSolidPods).not.toHaveBeenCalled();
+      await generator.generateShapeTree();
+      expect(walkSolidPods).not.toHaveBeenCalled();
     });
 
-    it('should walk into solid pods given getShapeTreeGeneratorInformation return valid information', () => {
-      // make getShapeTreeGeneratorInformation return information
+    it('should walk into solid pods given getShapeTreeGeneratorInformation return valid information', async() => {
+      // Make getShapeTreeGeneratorInformation return information
       jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
         return JSON.parse(`
           {
@@ -806,17 +788,14 @@ describe('Generator', () => {
           
           `);
       });
-      mockWalkSolidPods.mockReturnValueOnce(undefined);
-      generator.generateShapeTree();
-      expect(mockWalkSolidPods).toHaveBeenCalledTimes(1);
+      await generator.generateShapeTree();
+      expect(walkSolidPods).toHaveBeenCalledTimes(1);
     });
-
   });
 
   describe('generate', () => {
-
     describe('when overwrite is enabled', () => {
-      it('should run all phases if directories do not exist yet', async () => {
+      it('should run all phases if directories do not exist yet', async() => {
         await generator.generate();
 
         expect(container.start).toHaveBeenCalled();
@@ -829,7 +808,7 @@ describe('Generator', () => {
           .toHaveBeenCalledWith('validationConfig', { mainModulePath }, { variables: expect.anything() });
       });
 
-      it('should skip phases with existing directories', async () => {
+      it('should skip phases with existing directories', async() => {
         files[Path.join('CWD', 'out-snb')] = 'a';
         files[Path.join('CWD', 'out-enhanced')] = 'a';
         files[Path.join('CWD', 'out-fragments')] = 'a';
@@ -866,7 +845,7 @@ describe('Generator', () => {
         });
       });
 
-      it('should run all phases if directories do not exist yet', async () => {
+      it('should run all phases if directories do not exist yet', async() => {
         await generator.generate();
 
         expect(container.start).toHaveBeenCalled();
@@ -879,7 +858,7 @@ describe('Generator', () => {
           .toHaveBeenCalledWith('validationConfig', { mainModulePath }, { variables: expect.anything() });
       });
 
-      it('should skip phases with existing directories', async () => {
+      it('should skip phases with existing directories', async() => {
         files[Path.join('CWD', 'out-snb')] = 'a';
         files[Path.join('CWD', 'out-enhanced')] = 'a';
         files[Path.join('CWD', 'out-fragments')] = 'a';
@@ -897,7 +876,7 @@ describe('Generator', () => {
       });
     });
 
-    it('Should not run generateShapeTree when generateShapeTree is false', async () => {
+    it('Should not run generateShapeTree when generateShapeTree is false', async() => {
       generator = new Generator({
         cwd: 'CWD',
         verbose: true,
@@ -912,8 +891,7 @@ describe('Generator', () => {
         hadoopMemory: '4G',
         generateShapeTree: false,
       });
-      let spyGenerateShapeTree = jest.spyOn(generator, 'generateShapeTree').mockImplementation((): Promise<void> => { return new Promise(() => { }) });
-
+      const spyGenerateShapeTree = jest.spyOn(generator, 'generateShapeTree');
       await generator.generate();
 
       expect(spyGenerateShapeTree).not.toHaveBeenCalled();
@@ -922,7 +900,7 @@ describe('Generator', () => {
       spyGenerateShapeTree.mockRestore();
     });
 
-    it('Should run generateShapeTree when generateShapeTree is true', async () => {
+    it('Should run generateShapeTree when generateShapeTree is true', async() => {
       generator = new Generator({
         cwd: 'CWD',
         verbose: true,
@@ -937,7 +915,8 @@ describe('Generator', () => {
         hadoopMemory: '4G',
         generateShapeTree: true,
       });
-      let spyGenerateShapeTree = jest.spyOn(generator, 'generateShapeTree').mockImplementation((): Promise<void> => { return new Promise((resolve) => { resolve() }) });
+      const spyGenerateShapeTree = jest.spyOn(generator, 'generateShapeTree')
+        .mockImplementation((): Promise<void> => { return new Promise(resolve => { resolve(); }); });
 
       await generator.generate();
 
