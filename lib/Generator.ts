@@ -6,7 +6,7 @@ import { runConfig as runEnhancer } from 'ldbc-snb-enhancer';
 import { runConfig as runValidationGenerator } from 'ldbc-snb-validation-generator';
 import { runConfig as runFragmenter } from 'rdf-dataset-fragmenter';
 import type { Config } from 'shape-tree-in-solid-bench';
-import { walkSolidPods, generateShapeTreesFile, getShapeFromPath } from 'shape-tree-in-solid-bench';
+import { walkSolidPods } from 'shape-tree-in-solid-bench';
 import { runConfig as runQueryInstantiator } from 'sparql-query-parameter-instantiator';
 import { Extract } from 'unzipper';
 
@@ -299,8 +299,6 @@ export class Generator {
     const config: Config = {
       pods_folder: `${fragmentPath}/${baseAddr.replace(':', '_')}/pods`,
       shape_folders: this.shapesFolderPath,
-      generate_shape: getShapeFromPath,
-      generate_shape_trees: generateShapeTreesFile,
     };
     const errors = await walkSolidPods(config);
     /* istanbul ignore next */
