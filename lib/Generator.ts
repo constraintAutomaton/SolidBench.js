@@ -5,8 +5,8 @@ import Dockerode from 'dockerode';
 import { runConfig as runEnhancer } from 'ldbc-snb-enhancer';
 import { runConfig as runValidationGenerator } from 'ldbc-snb-validation-generator';
 import { runConfig as runFragmenter } from 'rdf-dataset-fragmenter';
-import type { Config } from 'shape-tree-in-solid-bench';
-import { walkSolidPods } from 'shape-tree-in-solid-bench';
+import type { Config } from 'shape-trees-in-solidbench-generator';
+import { walkSolidPods } from 'shape-trees-in-solidbench-generator';
 import { runConfig as runQueryInstantiator } from 'sparql-query-parameter-instantiator';
 import { Extract } from 'unzipper';
 

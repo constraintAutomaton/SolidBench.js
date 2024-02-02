@@ -41,10 +41,7 @@
         "lines": 100,
         "statements": 100
       }
-    },
-    "transformIgnorePatterns": [
-      "node_modules/(?!shape-tree-in-solid-bench)"
-    ]
+    }
   },
   "keywords": [
     "solidbench",
@@ -88,7 +85,7 @@
     "ldbc-snb-enhancer": "^2.5.1",
     "ldbc-snb-validation-generator": "^1.1.0",
     "rdf-dataset-fragmenter": "^2.4.0",
-    "shape-tree-in-solid-bench": "https://github.com/constraintAutomaton/shape-tree-solidbench-generator",
+    "shape-trees-in-solidbench-generator": "^0.0.1",
     "sparql-query-parameter-instantiator": "^2.5.1",
     "unzipper": "^0.10.11",
     "yargs": "^16.2.0"

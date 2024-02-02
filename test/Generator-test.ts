@@ -3,7 +3,7 @@ import * as Path from 'path';
 import { runConfig as runEnhancer } from 'ldbc-snb-enhancer';
 import { runConfig as runValidationGenerator } from 'ldbc-snb-validation-generator';
 import { runConfig as runFragmenter } from 'rdf-dataset-fragmenter';
-import { walkSolidPods } from 'shape-tree-in-solid-bench';
+import { walkSolidPods } from 'shape-trees-in-solidbench-generator';
 import { runConfig as runQueryInstantiator } from 'sparql-query-parameter-instantiator';
 
 import { Generator } from '../lib/Generator';
@@ -48,7 +48,7 @@ jest.mock('fs', () => ({
   },
 }));
 
-jest.mock('shape-tree-in-solid-bench');
+jest.mock('shape-trees-in-solidbench-generator');
 
 let container: any = {};
 let followProgress: any;
