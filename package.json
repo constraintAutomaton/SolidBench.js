@@ -1,6 +1,6 @@
 {
-  "name": "solidbench",
-  "version": "1.7.1",
+  "name": "solidbench-shapetree",
+  "version": "1.7.2",
   "description": "A benchmark for Solid to simulate vaults with social network data.",
   "main": "index.js",
   "scripts": {
@@ -52,16 +52,6 @@
     "snb",
     "social network"
   ],
-  "author": "Ruben Taelman <rubensworks@gmail.com>",
-  "repository": "git@github.com:SolidBench/SolidBench.js.git",
-  "bugs": {
-    "url": "https://github.com/SolidBench/SolidBench.js/issues"
-  },
-  "homepage": "https://github.com/SolidBench/SolidBench.js#readme",
-  "license": "MIT",
-  "bin": {
-    "solidbench": "bin/solidbench"
-  },
   "files": [
     "bin/**/*.d.ts",
     "bin/**/*.js",
@@ -85,7 +75,7 @@
     "ldbc-snb-enhancer": "^2.5.1",
     "ldbc-snb-validation-generator": "^1.1.0",
     "rdf-dataset-fragmenter": "^2.4.0",
-    "shape-trees-in-solidbench-generator": "^0.0.1",
+    "shape-trees-in-solidbench-generator": "^0.0.2",
     "sparql-query-parameter-instantiator": "^2.5.1",
     "unzipper": "^0.10.11",
     "yargs": "^16.2.0"

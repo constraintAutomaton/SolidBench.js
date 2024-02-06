@@ -70,7 +70,7 @@ export const builder = (yargs: Argv<any>): Argv<any> =>
         describe: 'Path of the folder of shapes',
         default: './shapes',
       },
-      shapetreeConfig: {
+      generateShapeTree: {
         type: 'boolean',
         describe: 'Enable the creation of shape trees inside of the pods',
         default: true,
