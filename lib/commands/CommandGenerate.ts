@@ -96,5 +96,5 @@ export const handler = (argv: Record<string, any>): Promise<void> => new Generat
   validationConfig: argv.validationConfig,
   hadoopMemory: argv.hadoopMemory,
   shapesFolderPath: argv.shapesFolderPath,
-  generateShapeTree: argv.shapetreeConfig,
+  generateShapeTree: argv.generateShapeTree,
 }).generate();
