@@ -96,11 +96,12 @@ export class Generator {
     await this.runPhase('SNB dataset enhancer', 'out-enhanced', () => this.enhanceSnbDataset());
     await this.runPhase('SNB dataset fragmenter', 'out-fragments', () => this.fragmentSnbDataset());
     await this.runPhase('SPARQL query instantiator', 'out-queries', () => this.instantiateQueries());
-    await this.runPhase('SNB validation downloader', 'out-validate-params', () => this.downloadValidationParams());
-    await this.runPhase('SNB validation generator', 'out-validate', () => this.generateValidation());
     if (this.runShapeTreeGenerator) {
       await this.runPhase('Shape Trees generator', undefined, () => this.generateShapeTree());
     }
+    await this.runPhase('SNB validation downloader', 'out-validate-params', () => this.downloadValidationParams());
+    await this.runPhase('SNB validation generator', 'out-validate', () => this.generateValidation());
+    
     const timeEnd = process.hrtime(timeStart);
     this.log('All', `Done in ${timeEnd[0] + (timeEnd[1] / 1_000_000_000)} seconds`);
   }
