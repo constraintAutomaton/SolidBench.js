@@ -293,59 +293,84 @@ describe('Generator', () => {
 
   describe('generateShapeTree', () => {
     describe('getShapeTreeGeneratorInformation', () => {
-      it('should return the fragment path and the port when a valid path is provided', () => {
+      it('should return the fragment path when a valid path is provided in the fragment config', () => {
         jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
           return JSON.parse(`
             {
-              "@context": "https://linkedsoftwaredependencies.org/bundles/npm/rdf-dataset-fragmenter/^2.0.0/components/context.jsonld",
-              "@id": "urn:rdf-dataset-fragmenter:default",
-              "@type": "Fragmenter",
-              "quadSource": {
-              "@id": "urn:rdf-dataset-fragmenter:source:default",
-              "@type": "QuadSourceComposite",
-              "sources": [
-                {
-                  "@type": "QuadSourceFile",
-                  "filePath": "out-enhanced/social_network_auxiliary.ttl"
-                }
-              ]
-              },
               "transformers": [
+                {
+                  "@type": "QuadTransformerBlankToNamed",
+                  "searchRegex": "^(b[0-9]*_tagclass)",
+                  "replacementString": "http://localhost:3000/www.ldbc.eu/tagclass/$1"
+                },
                 {
                   "@type": "QuadTransformerReplaceIri",
                   "searchRegex": "^http://www.ldbc.eu",
                   "replacementString": "http://localhost:3000/www.ldbc.eu"
-                },
-                {
-                  "@type": "QuadTransformerReplaceIri",
-                  "searchRegex": "^http://dbpedia.org",
-                  "replacementString": "http://localhost:3000/dbpedia.org"
-                },
-                {
-                  "@type": "QuadTransformerReplaceIri",
-                  "searchRegex": "^http://www.w3.org/2002/07/owl",
-                  "replacementString": "http://localhost:3000/www.w3.org/2002/07/owl"
                 }
               ],
-              "fragmentationStrategy": {
-                "@type": "FragmentationStrategyComposite",
-                "strategies": [
-                  { "@type": "FragmentationStrategySubject" }
-                ]
-              },
               "quadSink": {
-              "@id": "urn:rdf-dataset-fragmenter:sink:default",
-              "@type": "QuadSinkFile",
-              "log": true,
-              "outputFormat": "application/n-quads",
-              "fileExtension": ".nq",
-                "iriToPath": {
-                  "http://": "out-fragments/http/",
-                  "https://": "out-fragments/https/"
+                "@id": "urn:rdf-dataset-fragmenter:sink:default",
+                  "@type": "QuadSinkComposite",
+                  "sinks": [
+                    {
+                      "@type": "QuadSinkFile",
+                      "log": true,
+                      "outputFormat": "application/n-quads",
+                      "fileExtension": ".nq",
+                      "iriToPath": {
+                        "http://": "out-fragments/http/",
+                        "https://": "out-fragments/https/"
+                      }
+                    },
+                    {
+                      "@type": "QuadSinkFiltered",
+                      "filter": {
+                        "@type": "QuadMatcherResourceType",
+                        "typeRegex": "vocabulary/Person$",
+                        "matchFullResource": false
+                      },
+                      "sink": {
+                        "@type": "QuadSinkCsv",
+                        "file": "out-fragments/parameters-persons.csv",
+                        "columns": [
+                          "subject"
+                        ]
+                      }
+                    },
+                    {
+                      "@type": "QuadSinkFiltered",
+                      "filter": {
+                        "@type": "QuadMatcherResourceType",
+                        "typeRegex": "vocabulary/Comment$",
+                        "matchFullResource": false
+                      },
+                      "sink": {
+                        "@type": "QuadSinkCsv",
+                        "file": "out-fragments/parameters-comments.csv",
+                        "columns": [
+                          "subject"
+                        ]
+                      }
+                    },
+                    {
+                      "@type": "QuadSinkFiltered",
+                      "filter": {
+                        "@type": "QuadMatcherResourceType",
+                        "typeRegex": "vocabulary/Post$",
+                        "matchFullResource": false
+                      },
+                      "sink": {
+                        "@type": "QuadSinkCsv",
+                        "file": "out-fragments/parameters-posts.csv",
+                        "columns": [
+                          "subject"
+                        ]
+                      }
+                    }
+                  ]
                 }
-              }
             }
-            
             `);
         });
 
@@ -353,158 +378,318 @@ describe('Generator', () => {
         expect(resp).toStrictEqual([ 'out-fragments/https/', 'localhost:3000' ]);
       });
 
-      it('should return undefined if there is no iriToPath defined in the fragmenter config', () => {
+      it('should throw if there is no iriToPath defined in the fragmenter config', () => {
         jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
           return JSON.parse(`
-            {
-              "@context": "https://linkedsoftwaredependencies.org/bundles/npm/rdf-dataset-fragmenter/^2.0.0/components/context.jsonld",
-              "@id": "urn:rdf-dataset-fragmenter:default",
-              "@type": "Fragmenter",
-              "quadSource": {
-              "@id": "urn:rdf-dataset-fragmenter:source:default",
-              "@type": "QuadSourceComposite",
-              "sources": [
-                {
-                  "@type": "QuadSourceFile",
-                  "filePath": "out-enhanced/social_network_auxiliary.ttl"
-                }
-              ]
+          {
+            "transformers": [
+              {
+                "@type": "QuadTransformerBlankToNamed",
+                "searchRegex": "^(b[0-9]*_tagclass)",
+                "replacementString": "http://localhost:3000/www.ldbc.eu/tagclass/$1"
               },
-              "transformers": [
-                {
-                  "@type": "QuadTransformerReplaceIri",
-                  "searchRegex": "^http://www.ldbc.eu",
-                  "replacementString": "http://localhost:3000/www.ldbc.eu"
-                },
-                {
-                  "@type": "QuadTransformerReplaceIri",
-                  "searchRegex": "^http://dbpedia.org",
-                  "replacementString": "http://localhost:3000/dbpedia.org"
-                },
-                {
-                  "@type": "QuadTransformerReplaceIri",
-                  "searchRegex": "^http://www.w3.org/2002/07/owl",
-                  "replacementString": "http://localhost:3000/www.w3.org/2002/07/owl"
-                }
-              ],
-              "fragmentationStrategy": {
-                "@type": "FragmentationStrategyComposite",
-                "strategies": [
-                  { "@type": "FragmentationStrategySubject" }
-                ]
-              },
-              "quadSink": {
-              "@id": "urn:rdf-dataset-fragmenter:sink:default",
-              "@type": "QuadSinkFile",
-              "log": true,
-              "outputFormat": "application/n-quads",
-              "fileExtension": ".nq",
-                "iriToPath": {
-                }
+              {
+                "@type": "QuadTransformerReplaceIri",
+                "searchRegex": "^http://www.ldbc.eu",
+                "replacementString": "http://localhost:3000/www.ldbc.eu"
               }
-            }
-            
+            ],
+            "quadSink": {
+              "@id": "urn:rdf-dataset-fragmenter:sink:default",
+                "@type": "QuadSinkComposite",
+                "sinks": [
+                  {
+                    "@type": "QuadSinkFile",
+                    "log": true,
+                    "outputFormat": "application/n-quads",
+                    "fileExtension": ".nq"
+                  },
+                  {
+                    "@type": "QuadSinkFiltered",
+                    "filter": {
+                      "@type": "QuadMatcherResourceType",
+                      "typeRegex": "vocabulary/Person$",
+                      "matchFullResource": false
+                    },
+                    "sink": {
+                      "@type": "QuadSinkCsv",
+                      "file": "out-fragments/parameters-persons.csv",
+                      "columns": [
+                        "subject"
+                      ]
+                    }
+                  },
+                  {
+                    "@type": "QuadSinkFiltered",
+                    "filter": {
+                      "@type": "QuadMatcherResourceType",
+                      "typeRegex": "vocabulary/Comment$",
+                      "matchFullResource": false
+                    },
+                    "sink": {
+                      "@type": "QuadSinkCsv",
+                      "file": "out-fragments/parameters-comments.csv",
+                      "columns": [
+                        "subject"
+                      ]
+                    }
+                  },
+                  {
+                    "@type": "QuadSinkFiltered",
+                    "filter": {
+                      "@type": "QuadMatcherResourceType",
+                      "typeRegex": "vocabulary/Post$",
+                      "matchFullResource": false
+                    },
+                    "sink": {
+                      "@type": "QuadSinkCsv",
+                      "file": "out-fragments/parameters-posts.csv",
+                      "columns": [
+                        "subject"
+                      ]
+                    }
+                  }
+                ]
+              }
+          }
             `);
         });
 
-        const resp = generator.getShapeTreeGeneratorInformation();
-        expect(resp).toBeUndefined();
+        expect(() => generator.getShapeTreeGeneratorInformation()).toThrow();
       });
 
-      it('should return undefined if there all the iriToPath in the fragmenter config folders don\'t exist', () => {
+      it('should throw if all the iriToPath in the fragmenter config folders don\'t exist', () => {
         jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
           return JSON.parse(`
             {
-              "@context": "https://linkedsoftwaredependencies.org/bundles/npm/rdf-dataset-fragmenter/^2.0.0/components/context.jsonld",
-              "@id": "urn:rdf-dataset-fragmenter:default",
-              "@type": "Fragmenter",
-              "quadSource": {
-              "@id": "urn:rdf-dataset-fragmenter:source:default",
-              "@type": "QuadSourceComposite",
-              "sources": [
-                {
-                  "@type": "QuadSourceFile",
-                  "filePath": "out-enhanced/social_network_auxiliary.ttl"
-                }
-              ]
-              },
               "transformers": [
+                {
+                  "@type": "QuadTransformerBlankToNamed",
+                  "searchRegex": "^(b[0-9]*_tagclass)",
+                  "replacementString": "http://localhost:3000/www.ldbc.eu/tagclass/$1"
+                },
                 {
                   "@type": "QuadTransformerReplaceIri",
                   "searchRegex": "^http://www.ldbc.eu",
                   "replacementString": "http://localhost:3000/www.ldbc.eu"
-                },
-                {
-                  "@type": "QuadTransformerReplaceIri",
-                  "searchRegex": "^http://dbpedia.org",
-                  "replacementString": "http://localhost:3000/dbpedia.org"
-                },
-                {
-                  "@type": "QuadTransformerReplaceIri",
-                  "searchRegex": "^http://www.w3.org/2002/07/owl",
-                  "replacementString": "http://localhost:3000/www.w3.org/2002/07/owl"
                 }
               ],
-              "fragmentationStrategy": {
-                "@type": "FragmentationStrategyComposite",
-                "strategies": [
-                  { "@type": "FragmentationStrategySubject" }
-                ]
-              },
               "quadSink": {
-              "@id": "urn:rdf-dataset-fragmenter:sink:default",
-              "@type": "QuadSinkFile",
-              "log": true,
-              "outputFormat": "application/n-quads",
-              "fileExtension": ".nq",
-                "iriToPath": {
+                "@id": "urn:rdf-dataset-fragmenter:sink:default",
+                  "@type": "QuadSinkComposite",
+                  "sinks": [
+                    {
+                      "@type": "QuadSinkFile",
+                      "log": true,
+                      "outputFormat": "application/n-quads",
+                      "fileExtension": ".nq",
+                      "iriToPath": {
+                        "http://": "out-fragments/http/",
+                        "https://": "out-fragments/https/"
+                      }
+                    },
+                    {
+                      "@type": "QuadSinkFiltered",
+                      "filter": {
+                        "@type": "QuadMatcherResourceType",
+                        "typeRegex": "vocabulary/Person$",
+                        "matchFullResource": false
+                      },
+                      "sink": {
+                        "@type": "QuadSinkCsv",
+                        "file": "out-fragments/parameters-persons.csv",
+                        "columns": [
+                          "subject"
+                        ]
+                      }
+                    },
+                    {
+                      "@type": "QuadSinkFiltered",
+                      "filter": {
+                        "@type": "QuadMatcherResourceType",
+                        "typeRegex": "vocabulary/Comment$",
+                        "matchFullResource": false
+                      },
+                      "sink": {
+                        "@type": "QuadSinkCsv",
+                        "file": "out-fragments/parameters-comments.csv",
+                        "columns": [
+                          "subject"
+                        ]
+                      }
+                    },
+                    {
+                      "@type": "QuadSinkFiltered",
+                      "filter": {
+                        "@type": "QuadMatcherResourceType",
+                        "typeRegex": "vocabulary/Post$",
+                        "matchFullResource": false
+                      },
+                      "sink": {
+                        "@type": "QuadSinkCsv",
+                        "file": "out-fragments/parameters-posts.csv",
+                        "columns": [
+                          "subject"
+                        ]
+                      }
+                    }
+                  ]
                 }
-              }
             }
-            
             `);
         });
         fileExist = false;
-        const resp = generator.getShapeTreeGeneratorInformation();
-        expect(resp).toBeUndefined();
+        expect(() => generator.getShapeTreeGeneratorInformation()).toThrow();
+      });
+
+      it('should throw if the QuadSinkFile property don\'t exist', () => {
+        jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
+          return JSON.parse(`
+            {
+              "transformers": [
+                {
+                  "@type": "QuadTransformerBlankToNamed",
+                  "searchRegex": "^(b[0-9]*_tagclass)",
+                  "replacementString": "http://localhost:3000/www.ldbc.eu/tagclass/$1"
+                },
+                {
+                  "@type": "QuadTransformerReplaceIri",
+                  "searchRegex": "^http://www.ldbc.eu",
+                  "replacementString": "http://localhost:3000/www.ldbc.eu"
+                }
+              ],
+              "quadSink": {
+                "@id": "urn:rdf-dataset-fragmenter:sink:default",
+                  "@type": "QuadSinkComposite",
+                  "sinks": [
+                    {
+                      "@type": "boo",
+                      "log": true,
+                      "outputFormat": "application/n-quads",
+                      "fileExtension": ".nq",
+                      "iriToPath": {
+                        "http://": "out-fragments/http/",
+                        "https://": "out-fragments/https/"
+                      }
+                    },
+                    {
+                      "@type": "QuadSinkFiltered",
+                      "filter": {
+                        "@type": "QuadMatcherResourceType",
+                        "typeRegex": "vocabulary/Person$",
+                        "matchFullResource": false
+                      },
+                      "sink": {
+                        "@type": "QuadSinkCsv",
+                        "file": "out-fragments/parameters-persons.csv",
+                        "columns": [
+                          "subject"
+                        ]
+                      }
+                    },
+                    {
+                      "@type": "QuadSinkFiltered",
+                      "filter": {
+                        "@type": "QuadMatcherResourceType",
+                        "typeRegex": "vocabulary/Comment$",
+                        "matchFullResource": false
+                      },
+                      "sink": {
+                        "@type": "QuadSinkCsv",
+                        "file": "out-fragments/parameters-comments.csv",
+                        "columns": [
+                          "subject"
+                        ]
+                      }
+                    },
+                    {
+                      "@type": "QuadSinkFiltered",
+                      "filter": {
+                        "@type": "QuadMatcherResourceType",
+                        "typeRegex": "vocabulary/Post$",
+                        "matchFullResource": false
+                      },
+                      "sink": {
+                        "@type": "QuadSinkCsv",
+                        "file": "out-fragments/parameters-posts.csv",
+                        "columns": [
+                          "subject"
+                        ]
+                      }
+                    }
+                  ]
+                }
+            }
+            `);
+        });
+
+        expect(() => generator.getShapeTreeGeneratorInformation()).toThrow();
       });
 
       it('should throw if the fragmenter config have no transformers', () => {
         jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
           return JSON.parse(`
             {
-              "@context": "https://linkedsoftwaredependencies.org/bundles/npm/rdf-dataset-fragmenter/^2.0.0/components/context.jsonld",
-              "@id": "urn:rdf-dataset-fragmenter:default",
-              "@type": "Fragmenter",
-              "quadSource": {
-              "@id": "urn:rdf-dataset-fragmenter:source:default",
-              "@type": "QuadSourceComposite",
-              "sources": [
-                {
-                  "@type": "QuadSourceFile",
-                  "filePath": "out-enhanced/social_network_auxiliary.ttl"
-                }
-              ]
-              },
-              "fragmentationStrategy": {
-                "@type": "FragmentationStrategyComposite",
-                "strategies": [
-                  { "@type": "FragmentationStrategySubject" }
-                ]
-              },
               "quadSink": {
-              "@id": "urn:rdf-dataset-fragmenter:sink:default",
-              "@type": "QuadSinkFile",
-              "log": true,
-              "outputFormat": "application/n-quads",
-              "fileExtension": ".nq",
-                "iriToPath": {
-                  "http://": "out-fragments/http/",
-                  "https://": "out-fragments/https/"
+                "@id": "urn:rdf-dataset-fragmenter:sink:default",
+                  "@type": "QuadSinkComposite",
+                  "sinks": [
+                    {
+                      "@type": "QuadSinkFile",
+                      "log": true,
+                      "outputFormat": "application/n-quads",
+                      "fileExtension": ".nq",
+                      "iriToPath": {
+                      }
+                    },
+                    {
+                      "@type": "QuadSinkFiltered",
+                      "filter": {
+                        "@type": "QuadMatcherResourceType",
+                        "typeRegex": "vocabulary/Person$",
+                        "matchFullResource": false
+                      },
+                      "sink": {
+                        "@type": "QuadSinkCsv",
+                        "file": "out-fragments/parameters-persons.csv",
+                        "columns": [
+                          "subject"
+                        ]
+                      }
+                    },
+                    {
+                      "@type": "QuadSinkFiltered",
+                      "filter": {
+                        "@type": "QuadMatcherResourceType",
+                        "typeRegex": "vocabulary/Comment$",
+                        "matchFullResource": false
+                      },
+                      "sink": {
+                        "@type": "QuadSinkCsv",
+                        "file": "out-fragments/parameters-comments.csv",
+                        "columns": [
+                          "subject"
+                        ]
+                      }
+                    },
+                    {
+                      "@type": "QuadSinkFiltered",
+                      "filter": {
+                        "@type": "QuadMatcherResourceType",
+                        "typeRegex": "vocabulary/Post$",
+                        "matchFullResource": false
+                      },
+                      "sink": {
+                        "@type": "QuadSinkCsv",
+                        "file": "out-fragments/parameters-posts.csv",
+                        "columns": [
+                          "subject"
+                        ]
+                      }
+                    }
+                  ]
                 }
-              }
             }
-            
             `);
         });
 
@@ -613,183 +798,90 @@ describe('Generator', () => {
         expect(() => generator.getShapeTreeGeneratorInformation()).toThrow();
       });
 
-      it('should return undefined if the fragmenter config first a replacementString property is not an URL', () => {
+      it('should walk into solid pods given getShapeTreeGeneratorInformation return valid information', async() => {
+        // Make getShapeTreeGeneratorInformation return information
         jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
           return JSON.parse(`
-            {
-              "@context": "https://linkedsoftwaredependencies.org/bundles/npm/rdf-dataset-fragmenter/^2.0.0/components/context.jsonld",
-              "@id": "urn:rdf-dataset-fragmenter:default",
-              "@type": "Fragmenter",
-              "quadSource": {
-              "@id": "urn:rdf-dataset-fragmenter:source:default",
-              "@type": "QuadSourceComposite",
-              "sources": [
-                {
-                  "@type": "QuadSourceFile",
-                  "filePath": "out-enhanced/social_network_auxiliary.ttl"
-                }
-              ]
+          {
+            "transformers": [
+              {
+                "@type": "QuadTransformerBlankToNamed",
+                "searchRegex": "^(b[0-9]*_tagclass)",
+                "replacementString": "http://localhost:3000/www.ldbc.eu/tagclass/$1"
               },
-              "transformers": [
-                {
-                  "@type": "QuadTransformerReplaceIri",
-                  "searchRegex": "^http://www.ldbc.eu",
-                  "replacementString": "http:/localhost:3000/dbpedia.org"
-                },
-                {
-                  "@type": "QuadTransformerReplaceIri",
-                  "searchRegex": "^http://dbpedia.org",
-                  "replacementString": "http://localhost:3000/dbpedia.org"
-                },
-                {
-                  "@type": "QuadTransformerReplaceIri",
-                  "searchRegex": "^http://www.w3.org/2002/07/owl",
-                  "replacementString": "http://localhost:3000/www.w3.org/2002/07/owl"
-                }
-              ],
-              "fragmentationStrategy": {
-                "@type": "FragmentationStrategyComposite",
-                "strategies": [
-                  { "@type": "FragmentationStrategySubject" }
-                ]
-              },
-              "quadSink": {
+              {
+                "@type": "QuadTransformerReplaceIri",
+                "searchRegex": "^http://www.ldbc.eu",
+                "replacementString": "http://localhost:3000/www.ldbc.eu"
+              }
+            ],
+            "quadSink": {
               "@id": "urn:rdf-dataset-fragmenter:sink:default",
-              "@type": "QuadSinkFile",
-              "log": true,
-              "outputFormat": "application/n-quads",
-              "fileExtension": ".nq",
-                "iriToPath": {
-                  "http://": "out-fragments/http/",
-                  "https://": "out-fragments/https/"
-                }
+                "@type": "QuadSinkComposite",
+                "sinks": [
+                  {
+                    "@type": "QuadSinkFile",
+                    "log": true,
+                    "outputFormat": "application/n-quads",
+                    "fileExtension": ".nq",
+                    "iriToPath": {
+                      "http://": "out-fragments/http/",
+                      "https://": "out-fragments/https/"
+                    }
+                  },
+                  {
+                    "@type": "QuadSinkFiltered",
+                    "filter": {
+                      "@type": "QuadMatcherResourceType",
+                      "typeRegex": "vocabulary/Person$",
+                      "matchFullResource": false
+                    },
+                    "sink": {
+                      "@type": "QuadSinkCsv",
+                      "file": "out-fragments/parameters-persons.csv",
+                      "columns": [
+                        "subject"
+                      ]
+                    }
+                  },
+                  {
+                    "@type": "QuadSinkFiltered",
+                    "filter": {
+                      "@type": "QuadMatcherResourceType",
+                      "typeRegex": "vocabulary/Comment$",
+                      "matchFullResource": false
+                    },
+                    "sink": {
+                      "@type": "QuadSinkCsv",
+                      "file": "out-fragments/parameters-comments.csv",
+                      "columns": [
+                        "subject"
+                      ]
+                    }
+                  },
+                  {
+                    "@type": "QuadSinkFiltered",
+                    "filter": {
+                      "@type": "QuadMatcherResourceType",
+                      "typeRegex": "vocabulary/Post$",
+                      "matchFullResource": false
+                    },
+                    "sink": {
+                      "@type": "QuadSinkCsv",
+                      "file": "out-fragments/parameters-posts.csv",
+                      "columns": [
+                        "subject"
+                      ]
+                    }
+                  }
+                ]
               }
-            }
-            
-            `);
+          }
+          `);
         });
-
-        const resp = generator.getShapeTreeGeneratorInformation();
-        expect(resp).toBeUndefined();
+        await generator.generateShapeTree();
+        expect(walkSolidPods).toHaveBeenCalledTimes(1);
       });
-    });
-
-    it('should not have walk into solid pods given the getShapeTreeGeneratorInformation return undefined', async() => {
-      // Make getShapeTreeGeneratorInformation return undefined
-      jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
-        return JSON.parse(`
-          {
-            "@context": "https://linkedsoftwaredependencies.org/bundles/npm/rdf-dataset-fragmenter/^2.0.0/components/context.jsonld",
-            "@id": "urn:rdf-dataset-fragmenter:default",
-            "@type": "Fragmenter",
-            "quadSource": {
-            "@id": "urn:rdf-dataset-fragmenter:source:default",
-            "@type": "QuadSourceComposite",
-            "sources": [
-              {
-                "@type": "QuadSourceFile",
-                "filePath": "out-enhanced/social_network_auxiliary.ttl"
-              }
-            ]
-            },
-            "transformers": [
-              {
-                "@type": "QuadTransformerReplaceIri",
-                "searchRegex": "^http://www.ldbc.eu",
-                "replacementString": "http://localhost:3000/www.ldbc.eu"
-              },
-              {
-                "@type": "QuadTransformerReplaceIri",
-                "searchRegex": "^http://dbpedia.org",
-                "replacementString": "http://localhost:3000/dbpedia.org"
-              },
-              {
-                "@type": "QuadTransformerReplaceIri",
-                "searchRegex": "^http://www.w3.org/2002/07/owl",
-                "replacementString": "http://localhost:3000/www.w3.org/2002/07/owl"
-              }
-            ],
-            "fragmentationStrategy": {
-              "@type": "FragmentationStrategyComposite",
-              "strategies": [
-                { "@type": "FragmentationStrategySubject" }
-              ]
-            },
-            "quadSink": {
-            "@id": "urn:rdf-dataset-fragmenter:sink:default",
-            "@type": "QuadSinkFile",
-            "log": true,
-            "outputFormat": "application/n-quads",
-            "fileExtension": ".nq",
-              "iriToPath": {
-              }
-            }
-          }
-          
-          `);
-      });
-      await generator.generateShapeTree();
-      expect(walkSolidPods).not.toHaveBeenCalled();
-    });
-
-    it('should walk into solid pods given getShapeTreeGeneratorInformation return valid information', async() => {
-      // Make getShapeTreeGeneratorInformation return information
-      jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
-        return JSON.parse(`
-          {
-            "@context": "https://linkedsoftwaredependencies.org/bundles/npm/rdf-dataset-fragmenter/^2.0.0/components/context.jsonld",
-            "@id": "urn:rdf-dataset-fragmenter:default",
-            "@type": "Fragmenter",
-            "quadSource": {
-            "@id": "urn:rdf-dataset-fragmenter:source:default",
-            "@type": "QuadSourceComposite",
-            "sources": [
-              {
-                "@type": "QuadSourceFile",
-                "filePath": "out-enhanced/social_network_auxiliary.ttl"
-              }
-            ]
-            },
-            "transformers": [
-              {
-                "@type": "QuadTransformerReplaceIri",
-                "searchRegex": "^http://www.ldbc.eu",
-                "replacementString": "http://localhost:3000/www.ldbc.eu"
-              },
-              {
-                "@type": "QuadTransformerReplaceIri",
-                "searchRegex": "^http://dbpedia.org",
-                "replacementString": "http://localhost:3000/dbpedia.org"
-              },
-              {
-                "@type": "QuadTransformerReplaceIri",
-                "searchRegex": "^http://www.w3.org/2002/07/owl",
-                "replacementString": "http://localhost:3000/www.w3.org/2002/07/owl"
-              }
-            ],
-            "fragmentationStrategy": {
-              "@type": "FragmentationStrategyComposite",
-              "strategies": [
-                { "@type": "FragmentationStrategySubject" }
-              ]
-            },
-            "quadSink": {
-            "@id": "urn:rdf-dataset-fragmenter:sink:default",
-            "@type": "QuadSinkFile",
-            "log": true,
-            "outputFormat": "application/n-quads",
-            "fileExtension": ".nq",
-              "iriToPath": {
-                "http://": "out-fragments/http/",
-                "https://": "out-fragments/https/"
-              }
-            }
-          }
-          
-          `);
-      });
-      await generator.generateShapeTree();
-      expect(walkSolidPods).toHaveBeenCalledTimes(1);
     });
   });
 

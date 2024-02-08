@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import { request } from 'https';
 import * as Path from 'path';
+import * as url from 'url';
 import Dockerode from 'dockerode';
 import { runConfig as runEnhancer } from 'ldbc-snb-enhancer';
 import { runConfig as runValidationGenerator } from 'ldbc-snb-validation-generator';
@@ -101,7 +102,7 @@ export class Generator {
     }
     await this.runPhase('SNB validation downloader', 'out-validate-params', () => this.downloadValidationParams());
     await this.runPhase('SNB validation generator', 'out-validate', () => this.generateValidation());
-    
+
     const timeEnd = process.hrtime(timeStart);
     this.log('All', `Done in ${timeEnd[0] + (timeEnd[1] / 1_000_000_000)} seconds`);
   }
@@ -264,9 +265,19 @@ export class Generator {
     return JSON.parse(jsonConfig.toString());
   }
 
-  public getShapeTreeGeneratorInformation(): [string, string] | undefined {
+  private findFragmentedPathFromConfig(fragmentConfig: any): any {
+    const sinks: any[] = fragmentConfig.quadSink.sinks;
+    for (const sink of sinks) {
+      if (sink['@type'] === 'QuadSinkFile') {
+        return sink.iriToPath;
+      }
+    }
+    throw new Error('There is no QuadSinkFile property defined');
+  }
+
+  public getShapeTreeGeneratorInformation(): [string, string] {
     const fragmentConfig = this.getFragmentConfig();
-    const iriToPath: any = fragmentConfig.quadSink.iriToPath;
+    const iriToPath: any = this.findFragmentedPathFromConfig(fragmentConfig);
     let fragmentPath = '';
     for (const [ _, path ] of Object.entries(iriToPath)) {
       if (fs.existsSync(<string>path)) {
@@ -274,17 +285,13 @@ export class Generator {
       }
     }
     if (fragmentPath === '') {
-      return undefined;
+      throw new Error('There is no iriToPath defined');
     }
 
-    const rePort = /(https?):\/\/(.*)\//u;
     const aTransformerString: string = fragmentConfig.transformers[0].replacementString;
-    const foundURL = rePort.exec(aTransformerString);
-    if (foundURL === null) {
-      return undefined;
-    }
-    const baseAddr = foundURL[2];
-    return [ fragmentPath, baseAddr ];
+    const urlTransformer = new url.URL(aTransformerString);
+
+    return [ fragmentPath, urlTransformer.host ];
   }
 
   /**
@@ -292,9 +299,6 @@ export class Generator {
    */
   public async generateShapeTree(): Promise<void> {
     const shapeTreeInformation = this.getShapeTreeGeneratorInformation();
-    if (shapeTreeInformation === undefined) {
-      return;
-    }
     const [ fragmentPath, baseAddr ] = shapeTreeInformation;
 
     const config: Config = {
