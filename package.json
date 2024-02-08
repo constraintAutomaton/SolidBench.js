@@ -1,6 +1,6 @@
 {
   "name": "solidbench-shapetree",
-  "version": "1.7.5",
+  "version": "1.7.6",
   "description": "A benchmark for Solid to simulate vaults with social network data.",
   "main": "index.js",
   "scripts": {
