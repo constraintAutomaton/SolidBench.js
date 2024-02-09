@@ -281,9 +281,10 @@ export class Generator {
     const fragmentConfig = this.getFragmentConfig();
     const iriToPath: any = this.findFragmentedPathFromConfig(fragmentConfig);
     let fragmentPath = '';
-    for (const [ _, path ] of Object.entries(iriToPath)) {
-      if (fs.existsSync(<string>path)) {
-        fragmentPath = <string>path;
+    for (let path of Object.values(iriToPath)) {
+      path = this.shapeTreeWithJBR === true ? Path.join('generated', <string>path) : path;
+      if (fs.existsSync(<string> path)) {
+        fragmentPath = <string> path;
       }
     }
     if (fragmentPath === '') {
@@ -293,8 +294,7 @@ export class Generator {
     const aTransformerString: string = fragmentConfig.transformers[0].replacementString;
     const urlTransformer = new url.URL(aTransformerString);
 
-    return [ this.shapeTreeWithJBR === true ? Path.join('generated', fragmentPath) : fragmentPath,
-      urlTransformer.host ];
+    return [ fragmentPath, urlTransformer.host ];
   }
 
   /**
