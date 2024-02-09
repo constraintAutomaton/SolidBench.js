@@ -75,6 +75,11 @@ export const builder = (yargs: Argv<any>): Argv<any> =>
         describe: 'Enable the creation of shape trees inside of the pods',
         default: true,
       },
+      shapeTreeWithJBR: {
+        type: 'boolean',
+        describe: 'change the location of the generation of shapes to be inside the generated folder of JBR',
+        default: false,
+      },
     })
     .check((args, options): boolean => {
       const scales = [ 0.1, 1, 3, 10, 30, 100, 300, 1_000 ];
@@ -97,4 +102,5 @@ export const handler = (argv: Record<string, any>): Promise<void> => new Generat
   hadoopMemory: argv.hadoopMemory,
   shapesFolderPath: argv.shapesFolderPath,
   generateShapeTree: argv.generateShapeTree,
+  shapeTreeWithJBR: argv.shapeTreeWithJBR,
 }).generate();

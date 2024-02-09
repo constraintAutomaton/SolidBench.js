@@ -882,6 +882,106 @@ describe('Generator', () => {
         await generator.generateShapeTree();
         expect(walkSolidPods).toHaveBeenCalledTimes(1);
       });
+
+      it('should write into the generated folder if the jbr flag is true', () => {
+        generator = new Generator({
+          cwd: 'CWD',
+          verbose: false,
+          overwrite: true,
+          scale: '0.1',
+          enhancementConfig: 'enhancementConfig',
+          fragmentConfig: 'fragmentConfig',
+          enhancementFragmentConfig: 'enhancementFragmentConfig',
+          queryConfig: 'queryConfig',
+          validationParams: 'validationParams',
+          validationConfig: 'validationConfig',
+          hadoopMemory: '4G',
+          shapeTreeWithJBR: true,
+        });
+
+        jest.spyOn(generator, 'getFragmentConfig').mockImplementation(() => {
+          return JSON.parse(`
+            {
+              "transformers": [
+                {
+                  "@type": "QuadTransformerBlankToNamed",
+                  "searchRegex": "^(b[0-9]*_tagclass)",
+                  "replacementString": "http://localhost:3000/www.ldbc.eu/tagclass/$1"
+                },
+                {
+                  "@type": "QuadTransformerReplaceIri",
+                  "searchRegex": "^http://www.ldbc.eu",
+                  "replacementString": "http://localhost:3000/www.ldbc.eu"
+                }
+              ],
+              "quadSink": {
+                "@id": "urn:rdf-dataset-fragmenter:sink:default",
+                  "@type": "QuadSinkComposite",
+                  "sinks": [
+                    {
+                      "@type": "QuadSinkFile",
+                      "log": true,
+                      "outputFormat": "application/n-quads",
+                      "fileExtension": ".nq",
+                      "iriToPath": {
+                        "http://": "out-fragments/http/",
+                        "https://": "out-fragments/https/"
+                      }
+                    },
+                    {
+                      "@type": "QuadSinkFiltered",
+                      "filter": {
+                        "@type": "QuadMatcherResourceType",
+                        "typeRegex": "vocabulary/Person$",
+                        "matchFullResource": false
+                      },
+                      "sink": {
+                        "@type": "QuadSinkCsv",
+                        "file": "out-fragments/parameters-persons.csv",
+                        "columns": [
+                          "subject"
+                        ]
+                      }
+                    },
+                    {
+                      "@type": "QuadSinkFiltered",
+                      "filter": {
+                        "@type": "QuadMatcherResourceType",
+                        "typeRegex": "vocabulary/Comment$",
+                        "matchFullResource": false
+                      },
+                      "sink": {
+                        "@type": "QuadSinkCsv",
+                        "file": "out-fragments/parameters-comments.csv",
+                        "columns": [
+                          "subject"
+                        ]
+                      }
+                    },
+                    {
+                      "@type": "QuadSinkFiltered",
+                      "filter": {
+                        "@type": "QuadMatcherResourceType",
+                        "typeRegex": "vocabulary/Post$",
+                        "matchFullResource": false
+                      },
+                      "sink": {
+                        "@type": "QuadSinkCsv",
+                        "file": "out-fragments/parameters-posts.csv",
+                        "columns": [
+                          "subject"
+                        ]
+                      }
+                    }
+                  ]
+                }
+            }
+            `);
+        });
+
+        const resp = generator.getShapeTreeGeneratorInformation();
+        expect(resp).toStrictEqual([ 'generated/out-fragments/https/', 'localhost:3000' ]);
+      });
     });
   });
 

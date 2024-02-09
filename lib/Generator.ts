@@ -39,6 +39,7 @@ export class Generator {
   private readonly mainModulePath: string;
   private readonly shapesFolderPath: string | undefined;
   private readonly runShapeTreeGenerator: boolean | undefined;
+  private readonly shapeTreeWithJBR: boolean | undefined;
 
   public constructor(opts: IGeneratorOptions) {
     this.cwd = opts.cwd;
@@ -54,6 +55,7 @@ export class Generator {
     this.hadoopMemory = opts.hadoopMemory;
     this.shapesFolderPath = opts.shapesFolderPath;
     this.runShapeTreeGenerator = opts.generateShapeTree;
+    this.shapeTreeWithJBR = opts.shapeTreeWithJBR;
 
     this.mainModulePath = Path.join(__dirname, '..');
   }
@@ -291,7 +293,8 @@ export class Generator {
     const aTransformerString: string = fragmentConfig.transformers[0].replacementString;
     const urlTransformer = new url.URL(aTransformerString);
 
-    return [ fragmentPath, urlTransformer.host ];
+    return [ this.shapeTreeWithJBR === true ? Path.join('generated', fragmentPath) : fragmentPath,
+      urlTransformer.host ];
   }
 
   /**
@@ -341,4 +344,5 @@ export interface IGeneratorOptions {
   hadoopMemory: string;
   shapesFolderPath?: string;
   generateShapeTree?: boolean;
+  shapeTreeWithJBR?: boolean;
 }
